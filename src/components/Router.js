@@ -1,32 +1,42 @@
-import { BrowserRouter as Router, Switch, Route, Redirect } from 'react-router-dom';
-import Auth from "../routes/Auth";
-import Home from "../routes/Home";
-import Profile from "../routes/Profile";
-import Navigation from "./Navigation";
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Auth from "routes/Auth";
+import Home from "routes/Home";
+import Profile from "routes/Profile";
+import Navigation from "components/Navigation";
 
-const AppRouter = ({ isLoggedIn, userObj}) => {
+const AppRouter = ({ refreshUser, isLoggedIn, userObj }) => {
   return (
-    <Router>
-      {isLoggedIn && <Navigation />}
-      <Switch>
-        {isLoggedIn ? (
-          <>
-            <Route exact path="/">
-              <Home userObj={userObj}/>
-            </Route>
-            <Route exact path="/profile">
-              <Profile />
-            </Route>
-            <Redirect from="*" to="/" />
-          </>
-        ) : (
-          <Route exact path="/">
-            <Auth />
-          </Route>
-        )}
-        <Redirect from="*" to="/" />
-      </Switch>
+    <Router basename={process.env.PUBLIC_URL}>
+      {isLoggedIn && <Navigation userObj={userObj} />}
+      <div
+        style={{
+          maxWidth: 890,
+          width: "100%",
+          margin: "0 auto",
+          marginTop: 80,
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
+        <Routes>
+          {isLoggedIn ? (
+            <>
+              <Route path="/" element={<Home userObj={userObj} />}></Route>
+              <Route
+                path="/profile"
+                element={
+                  <Profile userObj={userObj} refreshUser={refreshUser} />
+                }
+              ></Route>
+            </>
+          ) : (
+            <Route path="/" element={<Auth />}></Route>
+          )}
+        </Routes>
+      </div>
     </Router>
   );
 };
+
 export default AppRouter;

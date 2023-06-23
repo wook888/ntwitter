@@ -1,26 +1,53 @@
-import AppRouter from "./Router";
-import React, { useState, useEffect } from "react";
-import { authService } from "../fbase";
+import { useEffect, useState } from "react";
+import AppRouter from "components/Router";
+import { auth } from "fbase";
+import { updateProfile } from "firebase/auth";
 
 function App() {
   const [init, setInit] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(authService.currentUser);
   const [userObj, setUserObj] = useState(null);
+
   useEffect(() => {
-    authService.onAuthStateChanged((user) => {
+    const handleAuthStateChanged = (user) => {
       if (user) {
-        setIsLoggedIn(true);
-        setUserObj(user);
+        if (user.displayName === null) {
+          const name = user.email.split("@")[0];
+          user.displayName = name;
+          updateProfile(user, {
+            displayName: name,
+          });
+        }
+        setUserObj({
+          displayName: user.displayName,
+          uid: user.uid,
+        });
       } else {
-        setIsLoggedIn(false);
+        setUserObj(null);
       }
       setInit(true);
-    });
+    };
+
+    const unsubscribe = auth.onAuthStateChanged(handleAuthStateChanged);
+
+    return () => unsubscribe();
   }, []);
+
+  const refreshUser = () => {
+    const user = auth.currentUser;
+    setUserObj({ ...user });
+  };
+
   return (
     <>
-      {init ? <AppRouter isLoggedIn={isLoggedIn} userObj={userObj} /> : "Initializing..."}
-      <footer>&copy; {new Date().getFullYear()} Nwitter</footer>
+      {init ? (
+        <AppRouter
+          refreshUser={refreshUser}
+          isLoggedIn={Boolean(userObj)}
+          userObj={userObj}
+        />
+      ) : (
+        "초기화 진행 중..!"
+      )}
     </>
   );
 }

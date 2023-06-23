@@ -1,29 +1,38 @@
-import React from "react";
 import { useState } from "react";
-import { dbService } from "fbase";
-import { doc, deleteDoc, updateDoc } from "firebase/firestore";
-
+import { db, storage } from "fbase";
+import { deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { deleteObject, ref } from "firebase/storage";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTrash, faPencilAlt } from "@fortawesome/free-solid-svg-icons";
 
 const Nweet = ({ nweetObj, isOwner }) => {
-    const [editing, setEditing] = useState(false);
-    const [newNweet, setNewNweet] = useState(nweetObj.text);
+  const [isEditing, setIsEditing] = useState(false);
+  const [newNweet, setNewNweet] = useState(nweetObj.text);
+  const NweetTextRef = doc(db, "nweets", `${nweetObj.id}`);
+  const desertRef = ref(storage, nweetObj.attachmentUrl);
+
+  const onDeleteClick = async () => {
+    const ok = window.confirm("이 nweet을 삭제하시겠습니까?");
+    if (ok) {
+      try {
+        await deleteDoc(NweetTextRef);
+        if (nweetObj.attachmentUrl !== "") {
+          await deleteObject(desertRef);
+        }
+      } catch (error) {
+        window.alert("nweet 삭제에 실패했습니다.");
+      }
+    }
+  };
   
-    const onDeleteClick = async () => {
-      const nweetRef = doc(dbService, "nweets", nweetObj.id);
-      await deleteDoc(nweetRef);
-    };
-  
-    const toggleEditing = () => setEditing((prev) => !prev);
-  
-    const onSubmit = async (event) => {
-      event.preventDefault();
-      const nweetRef = doc(dbService, "nweets", nweetObj.id);
-      await updateDoc(nweetRef, {
-        text: newNweet,
-      });
-      setEditing(false);
-    };
-  
+  const toggleEditing = () => setIsEditing((prev) => !prev);
+  const onSubmit = async (event) => {
+    event.preventDefault();
+    await updateDoc(NweetTextRef, {
+      text: newNweet,
+    });
+    setIsEditing(false);
+  };
   const onChange = (event) => {
     const {
       target: { value },
@@ -31,33 +40,49 @@ const Nweet = ({ nweetObj, isOwner }) => {
     setNewNweet(value);
   };
   return (
-    <div>
-      {editing ? (
+    <div className="nweet">
+      {isEditing ? (
         <>
-          <form onSubmit={onSubmit}>
-            <input
-              type="text"
-              placeholder="Edit your nweet"
-              value={newNweet}
-              required
-              onChange={onChange}
-            />
-            <input type="submit" value="Update Nweet" />
-          </form>
-          <button onClick={toggleEditing}>Cancel</button>
+          {isOwner && (
+            <>
+              <form onSubmit={onSubmit} className="container nweetEdit">
+                <input
+                  type="text"
+                  placeholder="Edit our nweet"
+                  value={newNweet}
+                  required
+                  autoFocus
+                  onChange={onChange}
+                  className="formInput"
+                />
+                <input type="submit" value="Update Nweet" className="formBtn" />
+              </form>
+              <span onClick={toggleEditing} className="formBtn cancelBtn">
+                Cancel
+              </span>
+            </>
+          )}
         </>
       ) : (
         <>
           <h4>{nweetObj.text}</h4>
+          {nweetObj.attachmentUrl && (
+            <img src={nweetObj.attachmentUrl} alt="" />
+          )}
           {isOwner && (
-            <>
-              <button onClick={onDeleteClick}>Delete Nweet</button>
-              <button onClick={toggleEditing}>Edit Nweet</button>
-            </>
+            <div className="nweet__actions">
+              <span onClick={onDeleteClick}>
+                <FontAwesomeIcon icon={faTrash} />
+              </span>
+              <span onClick={toggleEditing}>
+                <FontAwesomeIcon icon={faPencilAlt} />
+              </span>
+            </div>
           )}
         </>
       )}
     </div>
   );
 };
+
 export default Nweet;
